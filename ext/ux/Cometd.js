@@ -8,19 +8,20 @@ Ext.apply(org.cometd.JSON, {
 
 // ExtJS based cometd adapter
 Ext.ux.Cometd = (function(){
-    var c = org.cometd,
+    var _c = org.cometd,
+        _config = {},
 
-        cometd = new (Ext.extend(c.Cometd, {
-            // extend cometd functionality here
-        }))(),
+        _cometd = new (Ext.extend(_c.Cometd, {}))(),
+        _configure = _cometd.configure,
 
-        derive = c.Transport.derive,
-        LongPollingTransport = Ext.apply(derive(new c.LongPollingTransport()), {
+        _derive = _c.Transport.derive,
+        LongPollingTransport = Ext.apply(_derive(new _c.LongPollingTransport()), {
             xhrSend: function(options) { 
                 return Ext.Ajax.request({
                     url: options.url,
                     method: "POST",
                     jsonData: options.body,
+                    timeout: _config.maxNetworkDelay || 30000,
                     
                     headers: Ext.apply(options.headers || {}, {
                         "Content-Type": "application/json;charset=UTF-8"
@@ -37,7 +38,15 @@ Ext.ux.Cometd = (function(){
             }
         });
 
-    cometd.registerTransport('long-polling', LongPollingTransport);
+    _cometd.override({
+        // We need to hijack the configure method and stash off the config for ExtJS Ajax timeout setting.
+        configure: function(config) {
+            _config = config;
+            
+            _configure.apply(this, arguments);
+        }
+    });
+    _cometd.registerTransport('long-polling', LongPollingTransport);
 
-    return cometd;
+    return _cometd;
 })();
